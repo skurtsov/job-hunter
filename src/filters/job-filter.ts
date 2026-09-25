@@ -3,26 +3,51 @@ import type { Job } from "../types.js";
 const TITLE_KEYWORDS = [
   "software engineer",
   "software developer",
+
   "full stack",
   "full-stack",
   "fullstack",
+
   "backend",
   "back-end",
+
+  "frontend",
+  "front-end",
+
   "node.js",
   "nodejs",
+
   "typescript",
+  "javascript",
+
   "python",
 ];
 
 const EXCLUDED_TITLE_KEYWORDS = [
+  // Too junior
+  "intern",
+  "internship",
+  "junior",
+
+  // Staff level
+  "staff software engineer",
+  "staff engineer",
+
+  // Management
+  "engineering manager",
+  "software engineering manager",
+  "manager, software engineering",
+
+  // Mobile specialization
   "mobile",
   "ios",
   "android",
-  "engineering manager",
-  "manager, software engineering",
 ];
 
-function includesAny(value: string, keywords: string[]): boolean {
+function includesAny(
+  value: string,
+  keywords: string[]
+): boolean {
   const normalized = value.toLowerCase();
 
   return keywords.some((keyword) =>
@@ -30,9 +55,14 @@ function includesAny(value: string, keywords: string[]): boolean {
   );
 }
 
-export function filterJobs(jobs: Job[]): Job[] {
+export function filterJobs(
+  jobs: Job[]
+): Job[] {
   return jobs.filter((job) => {
-    const matchesRole = includesAny(job.title, TITLE_KEYWORDS);
+    const matchesRole = includesAny(
+      job.title,
+      TITLE_KEYWORDS
+    );
 
     const isExcluded = includesAny(
       job.title,
