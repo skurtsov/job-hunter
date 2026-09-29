@@ -6,6 +6,9 @@ import {
 const REGION = "eu-central-1";
 const MODEL_ID = "openai.gpt-oss-20b-1:0";
 
+const MAX_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 1000;
+
 const client = new BedrockRuntimeClient({
   region: REGION,
 });
@@ -20,15 +23,50 @@ export type BedrockResponse = {
   stopReason: string | null;
 };
 
-export async function askBedrock(
-  prompt: string
-): Promise<BedrockResponse> {
-  if (!prompt.trim()) {
-    throw new Error(
-      "Bedrock prompt cannot be empty"
-    );
+function sleep(
+  milliseconds: number
+): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
+export function isRetryableBedrockError(
+  error: unknown
+): boolean {
+  if (!(error instanceof Error)) {
+    return false;
   }
 
+  const name = error.name.toLowerCase();
+  const message = error.message.toLowerCase();
+
+  return (
+    name.includes("throttl") ||
+    name.includes("timeout") ||
+    name.includes("serviceunavailable") ||
+    name.includes("internalserver") ||
+    message.includes("throttl") ||
+    message.includes("timeout") ||
+    message.includes("timed out") ||
+    message.includes("service unavailable") ||
+    message.includes("temporarily unavailable") ||
+    message.includes("bedrock returned no assistant text")
+  );
+}
+
+function retryDelayMs(
+  attempt: number
+): number {
+  return (
+    RETRY_BASE_DELAY_MS *
+    2 ** (attempt - 1)
+  );
+}
+
+async function askBedrockOnce(
+  prompt: string
+): Promise<BedrockResponse> {
   const command = new ConverseCommand({
     modelId: MODEL_ID,
 
@@ -141,4 +179,57 @@ export async function askBedrock(
     stopReason:
       response.stopReason ?? null,
   };
+}
+
+export async function askBedrock(
+  prompt: string
+): Promise<BedrockResponse> {
+  if (!prompt.trim()) {
+    throw new Error(
+      "Bedrock prompt cannot be empty"
+    );
+  }
+
+  let lastError: unknown;
+
+  for (
+    let attempt = 1;
+    attempt <= MAX_ATTEMPTS;
+    attempt++
+  ) {
+    try {
+      return await askBedrockOnce(
+        prompt
+      );
+    } catch (error) {
+      lastError = error;
+
+      const shouldRetry =
+        attempt < MAX_ATTEMPTS &&
+        isRetryableBedrockError(
+          error
+        );
+
+      if (!shouldRetry) {
+        throw error;
+      }
+
+      const delay =
+        retryDelayMs(attempt);
+
+      console.warn(
+        [
+          `Bedrock attempt ${attempt}/${MAX_ATTEMPTS} failed.`,
+          `Retrying in ${delay}ms...`,
+          error instanceof Error
+            ? error.message
+            : String(error),
+        ].join(" ")
+      );
+
+      await sleep(delay);
+    }
+  }
+
+  throw lastError;
 }
