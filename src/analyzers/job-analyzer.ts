@@ -1856,6 +1856,27 @@ function postProcessAnalysis(
 
   /*
    * -----------------------------------------
+   * Required years of experience
+   * -----------------------------------------
+   *
+   * Explicit numeric requirements in the JD
+   * take precedence over LLM extraction.
+   */
+
+  const deterministicRequiredYears =
+    extractRequiredYears(
+      job.description
+    );
+
+  if (
+    deterministicRequiredYears !== null
+  ) {
+    result.experience.requiredYears =
+      deterministicRequiredYears;
+  }
+
+  /*
+   * -----------------------------------------
    * Seniority
    * -----------------------------------------
    */
