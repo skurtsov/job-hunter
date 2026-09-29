@@ -1,8 +1,15 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
 import {
   inferSeniorityFromTitle,
+  type SeniorityLevel,
 } from "../../analyzers/job-analyzer.js";
 
-const tests = [
+const cases: Array<{
+  title: string;
+  expected: SeniorityLevel | null;
+}> = [
   {
     title: "Software Engineer II",
     expected: "mid",
@@ -41,29 +48,16 @@ const tests = [
   },
 ];
 
-console.log(
-  "\n================================"
-);
-console.log("SENIORITY TESTS");
-console.log(
-  "================================"
-);
-
-for (const test of tests) {
-  const result =
-    inferSeniorityFromTitle(
-      test.title
-    );
-
-  const passed =
-    result === test.expected;
-
-  console.log(
-    `\n${passed ? "✅" : "❌"} ${test.title}`
-  );
-  console.log("Result:", result);
-  console.log(
-    "Expected:",
-    test.expected
+for (const testCase of cases) {
+  test(
+    `${testCase.title} -> ${testCase.expected ?? "unknown"}`,
+    () => {
+      assert.equal(
+        inferSeniorityFromTitle(
+          testCase.title
+        ),
+        testCase.expected
+      );
+    }
   );
 }
