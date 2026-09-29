@@ -99,3 +99,118 @@ test(
     );
   }
 );
+
+
+test(
+  "country-of-employment wording rejects Spain candidate for Remote Canada",
+  () => {
+    const job = makeJob({
+      location: "Remote Canada",
+      description:
+        "Affirm is remote-first. Most roles can be done from almost anywhere within the country of employment.",
+    });
+
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      false
+    );
+  }
+);
+
+test(
+  "country-of-employment wording accepts Spain candidate for Remote Spain",
+  () => {
+    const job = makeJob({
+      location: "Remote Spain",
+      description:
+        "Most roles can be done from almost anywhere within the country of employment.",
+    });
+
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      true
+    );
+  }
+);
+
+test(
+  "country-of-employment wording rejects Spain candidate for Remote US",
+  () => {
+    const job = makeJob({
+      location: "Remote US",
+      description:
+        "Most roles can be done from almost anywhere within the country of employment.",
+    });
+
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      false
+    );
+  }
+);
+
+test(
+  "country-of-employment wording rejects Spain candidate for Remote UK",
+  () => {
+    const job = makeJob({
+      location: "UK Remote",
+      description:
+        "Most roles can be done from almost anywhere within the country of employment.",
+    });
+
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      false
+    );
+  }
+);
+
+test(
+  "generic Remote does not turn country-of-employment wording into a restriction",
+  () => {
+    const job = makeJob({
+      location: "Remote",
+      description:
+        "Most roles can be done from almost anywhere within the country of employment.",
+    });
+
+    assert.equal(
+      detectExplicitLocationRestriction(
+        job
+      ),
+      null
+    );
+  }
+);
