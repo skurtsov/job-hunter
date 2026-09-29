@@ -1579,6 +1579,60 @@ export function detectExplicitLocationRestriction(
     };
   }
 
+  /*
+   * Some remote-first postings describe the geographic
+   * restriction indirectly:
+   *
+   * "Most roles can be done from almost anywhere within
+   * the country of employment."
+   *
+   * This sentence is only actionable when the vacancy
+   * itself names a country (for example "Remote Canada").
+   * We deliberately do NOT infer a restriction from a
+   * generic "Remote" location.
+   */
+  const withinCountryOfEmployment =
+    /\bwithin\s+the\s+country\s+of\s+employment\b/i.test(
+      description
+    );
+
+  if (withinCountryOfEmployment) {
+    const jobLocation =
+      normalizeLocationText(
+        job.location ?? ""
+      );
+
+    const knownCountries = [
+      "spain",
+      "canada",
+      "united states",
+      "united kingdom",
+      "poland",
+      "germany",
+      "france",
+      "italy",
+      "portugal",
+      "ireland",
+    ];
+
+    const country =
+      knownCountries.find(
+        (candidateCountry) =>
+          jobLocation.includes(
+            candidateCountry
+          )
+      );
+
+    if (country) {
+      return {
+        text:
+          `Role is restricted to the country of employment: ${country}`,
+        locationText: country,
+        kind: "based_in",
+      };
+    }
+  }
+
   return null;
 }
 
