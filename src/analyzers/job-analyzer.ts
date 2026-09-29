@@ -1303,7 +1303,7 @@ const ACCEPTED_SENIORITY: SeniorityLevel[] = [
  *
  * "Senior Software Engineer"
  */
-function inferSeniorityFromTitle(
+export function inferSeniorityFromTitle(
   title: string
 ): SeniorityLevel | null {
   const normalized = title
@@ -1365,7 +1365,26 @@ function inferSeniorityFromTitle(
   ) {
     return "senior";
   }
-
+  /*
+ * Level II engineering titles are treated as mid-level.
+ *
+ * Examples:
+ * - Software Engineer II
+ * - Software Developer II
+ * - Backend Engineer II
+ * - Frontend Engineer II
+ * - Full-Stack Engineer II
+ *
+ * Engineer III is intentionally not inferred here because
+ * company leveling systems differ significantly.
+ */
+if (
+  /\b(?:software|backend|frontend|full[- ]?stack)\s+(?:engineer|developer)\s+ii\b/i.test(
+    normalized
+  )
+) {
+  return "mid";
+}
   if (
     normalized.includes("mid-level") ||
     normalized.includes("mid level") ||
@@ -1721,6 +1740,63 @@ function sanitizeUnknownWorkReasoning(
     )
     .join(" ")
     .trim();
+}
+/* */
+export function extractRequiredYears(
+  description: string | null
+): number | null {
+  if (!description) {
+    return null;
+  }
+
+  const text = stripHtml(description)
+    .toLowerCase()
+    .replace(/[–—]/g, "-");
+
+  const patterns: RegExp[] = [
+    // "4+ years", "1.5+ years"
+    /\b(\d+(?:\.\d+)?)\s*\+\s*years?\b/i,
+
+    // "at least 4 years"
+    /\bat least\s+(\d+(?:\.\d+)?)\s+years?\b/i,
+
+    // "minimum of 4 years"
+    /\bminimum\s+(?:of\s+)?(\d+(?:\.\d+)?)\s+years?\b/i,
+
+    // "minimum 4 years"
+    /\bminimum\s+(\d+(?:\.\d+)?)\s+years?\b/i,
+  ];
+
+  const matches: number[] = [];
+
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(
+      new RegExp(pattern.source, "gi")
+    )) {
+      const rawValue = match[1];
+
+      if (!rawValue) {
+        continue;
+      }
+
+      const value = Number.parseFloat(
+        rawValue
+      );
+
+      if (
+        Number.isFinite(value) &&
+        value >= 0
+      ) {
+        matches.push(value);
+      }
+    }
+  }
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  return Math.max(...matches);
 }
 
 /**

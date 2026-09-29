@@ -1,13 +1,13 @@
-import type { Job } from "../types.js";
+import type { Job } from "../../types.js";
 
 import {
   detectExplicitLocationRestriction,
   candidateSatisfiesLocationRestriction,
-} from "./job-analyzer.js";
+} from "../../analyzers/job-analyzer.js";
 
 import {
   CANDIDATE_PROFILE,
-} from "../config/candidate-profile.js";
+} from "../../config/candidate-profile.js";
 
 function createJob(
   location: string,
