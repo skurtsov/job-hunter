@@ -31,10 +31,35 @@ function sleep(
   });
 }
 
-export function isRetryableBedrockError(
+export function isBedrockAuthenticationError(
   error: unknown
 ): boolean {
   if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const name = error.name.toLowerCase();
+  const message = error.message.toLowerCase();
+
+  return (
+    name.includes("expiredtoken") ||
+    name.includes("unrecognizedclient") ||
+    name.includes("invalidsignature") ||
+    message.includes("session has expired") ||
+    message.includes("token has expired") ||
+    message.includes("expired token") ||
+    message.includes("please reauthenticate") ||
+    message.includes("security token included in the request is expired")
+  );
+}
+
+export function isRetryableBedrockError(
+  error: unknown
+): boolean {
+  if (
+    !(error instanceof Error) ||
+    isBedrockAuthenticationError(error)
+  ) {
     return false;
   }
 
