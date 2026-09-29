@@ -23,6 +23,10 @@ import {
 } from "./config/candidate-profile.js";
 
 import {
+  isBedrockAuthenticationError,
+} from "./llm/bedrock-client.js";
+
+import {
   createAnalysisOutputPath,
   saveAnalyzedJobsToFile,
   type AnalyzedJob,
@@ -323,14 +327,32 @@ async function main(): Promise<void> {
     } catch (error) {
       failed++;
 
-      /*
-       * One bad vacancy must NOT kill
-       * the whole batch.
-       */
-
       console.error(
         `Analysis failed for: ${item.job.title}`
       );
+
+      if (
+        isBedrockAuthenticationError(
+          error
+        )
+      ) {
+        console.error(
+          error instanceof Error
+            ? error.message
+            : String(error)
+        );
+
+        console.error(
+          "\nBedrock authentication failed. Stopping batch."
+        );
+
+        throw error;
+      }
+
+      /*
+       * A vacancy-specific failure must NOT kill
+       * the whole batch.
+       */
 
       if (
         error instanceof Error
