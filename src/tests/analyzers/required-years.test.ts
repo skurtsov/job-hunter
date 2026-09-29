@@ -1,8 +1,14 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
 import {
   extractRequiredYears,
 } from "../../analyzers/job-analyzer.js";
 
-const tests = [
+const cases: Array<{
+  text: string;
+  expected: number | null;
+}> = [
   {
     text: "Requires 4+ years of software engineering experience.",
     expected: 4,
@@ -37,34 +43,16 @@ const tests = [
   },
 ];
 
-console.log(
-  "\n================================"
-);
-console.log("REQUIRED YEARS TESTS");
-console.log(
-  "================================"
-);
-
-for (const test of tests) {
-  const result =
-    extractRequiredYears(
-      test.text
-    );
-
-  const passed =
-    result === test.expected;
-
-  console.log(
-    `\n${passed ? "✅" : "❌"} ${test.text}`
-  );
-
-  console.log(
-    "Result:",
-    result
-  );
-
-  console.log(
-    "Expected:",
-    test.expected
+for (const testCase of cases) {
+  test(
+    `extractRequiredYears: ${testCase.text || "empty description"}`,
+    () => {
+      assert.equal(
+        extractRequiredYears(
+          testCase.text
+        ),
+        testCase.expected
+      );
+    }
   );
 }
