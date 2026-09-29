@@ -1,3 +1,6 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
 import type { Job } from "../../types.js";
 
 import {
@@ -25,10 +28,10 @@ function createJob(
   };
 }
 
-const tests = [
-  {
-    name: "Canada-only",
-    job: createJob(
+test(
+  "Canada-only restriction rejects candidate in Spain",
+  () => {
+    const job = createJob(
       "Remote Canada",
       `
       This remote role is open only to candidates residing in
@@ -36,79 +39,63 @@ const tests = [
       Newfoundland and Labrador, Nova Scotia, Ontario,
       Prince Edward Island, or Saskatchewan.
       `
-    ),
-    expected: false,
-  },
+    );
 
-  {
-    name: "Spain-only",
-    job: createJob(
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      false
+    );
+  }
+);
+
+test(
+  "Spain-only restriction accepts candidate in Spain",
+  () => {
+    const job = createJob(
       "Remote Spain",
       `
       We require that someone is based in Spain.
       `
-    ),
-    expected: true,
-  },
+    );
 
-  {
-    name: "Remote US without explicit restriction",
-    job: createJob(
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      true
+    );
+  }
+);
+
+test(
+  "Remote US without explicit restriction remains unknown",
+  () => {
+    const job = createJob(
       "Remote US",
       `
       This is a remote software engineering position.
       `
-    ),
-    expected: null,
-  },
-];
-
-console.log(
-  "\n================================"
-);
-console.log("LOCATION TESTS");
-console.log(
-  "================================"
-);
-
-for (const test of tests) {
-  const restriction =
-    detectExplicitLocationRestriction(
-      test.job
     );
 
-  const result = restriction
-    ? candidateSatisfiesLocationRestriction(
-        restriction,
-        test.job,
-        CANDIDATE_PROFILE
-      )
-    : null;
-
-  const passed =
-    result === test.expected;
-
-  console.log(
-    `\n${passed ? "✅" : "❌"} ${test.name}`
-  );
-
-  console.log(
-    "Restriction:",
-    restriction?.text ?? "none"
-  );
-
-  console.log(
-    "Candidate country:",
-    CANDIDATE_PROFILE.location.country
-  );
-
-  console.log(
-    "Result:",
-    result
-  );
-
-  console.log(
-    "Expected:",
-    test.expected
-  );
-}
+    assert.equal(
+      detectExplicitLocationRestriction(job),
+      null
+    );
+  }
+);
