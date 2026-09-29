@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  isBedrockAuthenticationError,
   isRetryableBedrockError,
 } from "../../llm/bedrock-client.js";
 
@@ -61,6 +62,50 @@ test(
       isRetryableBedrockError(
         "temporary failure"
       ),
+      false
+    );
+  }
+);
+
+const authenticationErrors = [
+  Object.assign(
+    new Error("Your session has expired. Please reauthenticate."),
+    { name: "ExpiredTokenException" }
+  ),
+  new Error(
+    "The security token included in the request is expired"
+  ),
+];
+
+for (const error of authenticationErrors) {
+  test(
+    `detects Bedrock authentication error: ${error.name}`,
+    () => {
+      assert.equal(
+        isBedrockAuthenticationError(error),
+        true
+      );
+
+      assert.equal(
+        isRetryableBedrockError(error),
+        false
+      );
+    }
+  );
+}
+
+test(
+  "does not classify transient failures as authentication errors",
+  () => {
+    const error = Object.assign(
+      new Error("Service unavailable"),
+      {
+        name: "ServiceUnavailableException",
+      }
+    );
+
+    assert.equal(
+      isBedrockAuthenticationError(error),
       false
     );
   }
