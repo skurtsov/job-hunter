@@ -8,7 +8,9 @@ export const CANDIDATE_PROFILE: CandidateProfile = {
   yearsOfExperience: 10,
 
   seniority: "senior",
-
+  location: {
+        country: "Spain",
+  },
   skills: [
     // ==================================================
     // LANGUAGES
@@ -76,8 +78,6 @@ export const CANDIDATE_PROFILE: CandidateProfile = {
     // ==================================================
     "AWS",
     "GCP",
-
-    // AWS
     "Amazon EC2",
     "Amazon S3",
     "Amazon Bedrock",
@@ -169,23 +169,23 @@ export const CANDIDATE_PROFILE: CandidateProfile = {
     "Cloudflare Turnstile",
 
     // ==================================================
-    // VALIDATION / APPLICATION DEVELOPMENT
+    // VALIDATION
     // ==================================================
     "Zod",
 
     // ==================================================
-    // DEVELOPMENT TOOLS / VERSION CONTROL
+    // DEVELOPMENT TOOLS
     // ==================================================
     "Git",
     "GitHub",
 
     // ==================================================
-    // DEPLOYMENT / HOSTING
+    // DEPLOYMENT
     // ==================================================
     "Vercel",
 
     // ==================================================
-    // AUTOMATION / WORKFLOW TOOLS
+    // AUTOMATION / WORKFLOW
     // ==================================================
     "Airtable",
 
@@ -214,11 +214,6 @@ export const CANDIDATE_PROFILE: CandidateProfile = {
     "Project Management",
   ],
 
-  // Previous professional domains.
-  //
-  // IMPORTANT:
-  // These describe previous experience only.
-  // They MUST NOT be used as job-search restrictions.
   domains: [
     "FinTech",
     "BioTech",
@@ -232,9 +227,6 @@ export const CANDIDATE_PROFILE: CandidateProfile = {
     "SaaS",
   ],
 
-  // Target roles.
-  //
-  // Industry/domain does not matter.
   preferredRoles: [
     "Senior Software Engineer",
     "Senior Full-Stack Engineer",
@@ -267,5 +259,8 @@ export const CANDIDATE_PROFILE: CandidateProfile = {
     acceptsB2B: true,
     acceptsEmployment: true,
     acceptsRemote: true,
+
+    // Candidate does NOT have US employment authorization.
+    hasUSWorkAuthorization: false,
   },
 };

@@ -3,22 +3,26 @@ import { filterJobs } from "../filters/job-filter.js";
 import { analyzeJob } from "./job-analyzer.js";
 import { CANDIDATE_PROFILE } from "../config/candidate-profile.js";
 
+import {
+  saveAnalyzedJobs,
+  type AnalyzedJob,
+} from "../output/json-writer.js";
+
 async function main() {
   console.log("Collecting jobs...");
 
-  // 1. Получаем реальные вакансии Affirm
   const jobs = await collectGreenhouseJobs(
     "affirm",
     "Affirm"
   );
 
-  // 2. Применяем наш базовый role filter
   const filteredJobs = filterJobs(jobs);
 
   console.log(`Total jobs: ${jobs.length}`);
-  console.log(`Role matched: ${filteredJobs.length}`);
+  console.log(
+    `Role matched: ${filteredJobs.length}`
+  );
 
-  // 3. Для первого теста берем конкретную реальную вакансию
   const job = filteredJobs.find((job) =>
     job.title.includes(
       "Lake Analytics Platform"
@@ -51,8 +55,6 @@ async function main() {
 
   const startedAt = Date.now();
 
-  // 4. Отправляем полное описание вакансии
-  // + профиль кандидата в Bedrock
   const analysis = await analyzeJob(
     job,
     CANDIDATE_PROFILE
@@ -60,22 +62,46 @@ async function main() {
 
   const elapsed = Date.now() - startedAt;
 
-  // 5. Выводим структурированный результат
   console.log(
-    JSON.stringify(analysis, null, 2)
+    JSON.stringify(
+      analysis,
+      null,
+      2
+    )
   );
+
+  // ================================================
+  // SAVE RESULT
+  // ================================================
+
+  const analyzedJob: AnalyzedJob = {
+    job,
+    analysis,
+    analyzedAt: new Date().toISOString(),
+  };
+
+  const outputPath =
+    await saveAnalyzedJobs([
+      analyzedJob,
+    ]);
 
   console.log("");
   console.log("================================");
   console.log(
     `Analysis time: ${elapsed} ms`
   );
+  console.log(
+    `Saved to: ${outputPath}`
+  );
   console.log("================================");
 }
 
 main().catch((error) => {
   console.error("");
-  console.error("Job analyzer test failed:");
+  console.error(
+    "Job analyzer test failed:"
+  );
+
   console.error(error);
 
   process.exit(1);

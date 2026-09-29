@@ -1,6 +1,14 @@
-import type { DeduplicatedJob } from "./job-deduplicator.js";
-import { analyzeTechMatch } from "../analyzers/tech-matcher.js";
-import { PROFILE_SKILLS } from "../config/profile.js";
+import type {
+  DeduplicatedJob,
+} from "./job-deduplicator.js";
+
+import {
+  analyzeTechMatch,
+} from "../analyzers/tech-matcher.js";
+
+import {
+  PROFILE_SKILLS,
+} from "../config/profile.js";
 
 export type ShortlistedJob = {
   job: DeduplicatedJob;
@@ -13,27 +21,44 @@ export type ShortlistedJob = {
 export function createShortlist(
   jobs: DeduplicatedJob[]
 ): ShortlistedJob[] {
-  return jobs
-    .map((job) => {
-      const representativeJob = job.jobs[0];
+  const shortlist: ShortlistedJob[] = [];
 
-      const techMatch = analyzeTechMatch(
+  for (const job of jobs) {
+    const representativeJob =
+      job.jobs[0];
+
+    if (!representativeJob) {
+      continue;
+    }
+
+    const techMatch =
+      analyzeTechMatch(
         representativeJob,
         PROFILE_SKILLS
       );
 
-      return {
-        job,
-        techScore: techMatch.score,
-        matchedSkills: techMatch.matchedSkills,
-        missingSkills: techMatch.missingSkills,
-        jobTechnologies: techMatch.jobTechnologies,
-      };
-    })
+    if (techMatch.score < 50) {
+      continue;
+    }
 
-    // For now this is intentionally permissive.
-    // LLM analysis will make the real decision later.
-    .filter((item) => item.techScore >= 50)
+    shortlist.push({
+      job,
+      techScore:
+        techMatch.score,
+      matchedSkills:
+        techMatch.matchedSkills,
+      missingSkills:
+        techMatch.missingSkills,
+      jobTechnologies:
+        techMatch.jobTechnologies,
+    });
+  }
 
-    .sort((a, b) => b.techScore - a.techScore);
+  shortlist.sort(
+    (a, b) =>
+      b.techScore -
+      a.techScore
+  );
+
+  return shortlist;
 }
