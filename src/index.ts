@@ -47,7 +47,14 @@ function sleep(
   });
 }
 
+export function isDryRun(
+  args: string[] = process.argv.slice(2)
+): boolean {
+  return args.includes("--dry-run");
+}
+
 async function main(): Promise<void> {
+  const dryRun = isDryRun();
   console.log(
     "================================"
   );
@@ -116,6 +123,46 @@ async function main(): Promise<void> {
    * 3. Create ONE output file for this run
    * -----------------------------------------
    */
+
+  if (dryRun) {
+    console.log(
+      "\n================================"
+    );
+    console.log("DRY RUN COMPLETE");
+    console.log(
+      "================================"
+    );
+    console.log("Bedrock requests: 0");
+    console.log("Output files:     0");
+    console.log(
+      `Shortlisted:      ${shortlist.length}`
+    );
+
+    for (
+      const [index, item]
+      of shortlist.entries()
+    ) {
+      console.log(
+        `\n#${index + 1} — ${item.techScore}%`
+      );
+      console.log(
+        `${item.job.company} — ${item.job.title}`
+      );
+      console.log(
+        `Locations: ${
+          item.job.locations.join(", ") ||
+          "Unknown"
+        }`
+      );
+      console.log(
+        `Apply: ${
+          item.job.applyUrls.join(", ")
+        }`
+      );
+    }
+
+    return;
+  }
 
   const outputPath =
     await createAnalysisOutputPath();
