@@ -1742,6 +1742,158 @@ function sanitizeUnknownWorkReasoning(
     .trim();
 }
 /* */
+export type DeterministicWorkArrangement = {
+  type: WorkArrangement;
+  evidence: string[];
+};
+
+export function detectWorkArrangement(
+  description: string | null
+): DeterministicWorkArrangement {
+  if (!description) {
+    return {
+      type: "unknown",
+      evidence: [],
+    };
+  }
+
+  const text = stripHtml(description)
+    .toLowerCase();
+
+  const b2bPatterns: Array<{
+    pattern: RegExp;
+    evidence: string;
+  }> = [
+    {
+      pattern: /\bindependent contractor\b/i,
+      evidence: "independent contractor",
+    },
+    {
+      pattern: /\binternational contractors?\b/i,
+      evidence: "international contractor",
+    },
+    {
+      pattern: /\bb2b\b/i,
+      evidence: "B2B",
+    },
+    {
+      pattern: /\bemployer of record\b|\beor\b/i,
+      evidence: "EOR",
+    },
+    {
+      pattern: /\bwork from anywhere\b/i,
+      evidence: "work from anywhere",
+    },
+    {
+      pattern: /\bworldwide remote\b|\bremote worldwide\b/i,
+      evidence: "worldwide remote",
+    },
+  ];
+
+  const employmentOnlyPatterns: Array<{
+    pattern: RegExp;
+    evidence: string;
+  }> = [
+    {
+      pattern: /\bemployment only\b/i,
+      evidence: "employment only",
+    },
+    {
+      pattern: /\bemployees? only\b/i,
+      evidence: "employees only",
+    },
+    {
+      pattern: /\bno (?:independent )?contractors?\b/i,
+      evidence: "contractors not accepted",
+    },
+    {
+      pattern: /\bcontractors? (?:are|is) not (?:accepted|eligible|permitted|allowed)\b/i,
+      evidence: "contractors not accepted",
+    },
+    {
+      pattern: /\bmust (?:be|join as) (?:a |an )?(?:full[- ]time )?employee\b/i,
+      evidence: "employee status required",
+    },
+  ];
+
+  const b2bEvidence = b2bPatterns
+    .filter(({ pattern }) =>
+      pattern.test(text)
+    )
+    .map(({ evidence }) => evidence);
+
+  const employmentEvidence =
+    employmentOnlyPatterns
+      .filter(({ pattern }) =>
+        pattern.test(text)
+      )
+      .map(({ evidence }) => evidence);
+
+  if (
+    b2bEvidence.length > 0 &&
+    employmentEvidence.length === 0
+  ) {
+    return {
+      type: "b2b_possible",
+      evidence: b2bEvidence,
+    };
+  }
+
+  if (
+    employmentEvidence.length > 0 &&
+    b2bEvidence.length === 0
+  ) {
+    return {
+      type: "employment_only",
+      evidence: employmentEvidence,
+    };
+  }
+
+  return {
+    type: "unknown",
+    evidence: [
+      ...b2bEvidence,
+      ...employmentEvidence,
+    ],
+  };
+}
+
+export type ExplicitWorkAuthorizationRestriction = {
+  text: string;
+  country: "united states" | null;
+};
+
+export function detectExplicitWorkAuthorizationRestriction(
+  description: string | null
+): ExplicitWorkAuthorizationRestriction | null {
+  if (!description) {
+    return null;
+  }
+
+  const text = stripHtml(description);
+
+  const usPatterns = [
+    /must (?:be )?(?:currently )?authorized to work in (?:the )?(?:united states|u\.s\.|us)/i,
+    /(?:united states|u\.s\.|us) work authorization (?:is )?required/i,
+    /must have (?:the )?right to work in (?:the )?(?:united states|u\.s\.|us)/i,
+    /must be legally authorized to work in (?:the )?(?:united states|u\.s\.|us)/i,
+  ];
+
+  if (
+    usPatterns.some((pattern) =>
+      pattern.test(text)
+    )
+  ) {
+    return {
+      text:
+        "US work authorization is explicitly required",
+      country: "united states",
+    };
+  }
+
+  return null;
+}
+
 export function extractRequiredYears(
   description: string | null
 ): number | null {
@@ -1929,6 +2081,65 @@ function postProcessAnalysis(
           "is not satisfied:",
           explicitLocationRestriction.text,
         ].join(" ")
+      );
+    }
+  }
+
+  /*
+   * -----------------------------------------
+   * Deterministic work arrangement
+   * -----------------------------------------
+   */
+
+  const deterministicWorkArrangement =
+    detectWorkArrangement(
+      job.description
+    );
+
+  if (
+    deterministicWorkArrangement.type !==
+    "unknown"
+  ) {
+    result.workArrangement.type =
+      deterministicWorkArrangement.type;
+
+    for (
+      const evidence
+      of deterministicWorkArrangement.evidence
+    ) {
+      addUnique(
+        result.workArrangement.restrictions,
+        `Work-arrangement evidence: ${evidence}`
+      );
+    }
+  }
+
+  /*
+   * -----------------------------------------
+   * Explicit work authorization
+   * -----------------------------------------
+   */
+
+  const authorizationRestriction =
+    detectExplicitWorkAuthorizationRestriction(
+      job.description
+    );
+
+  if (authorizationRestriction) {
+    addUnique(
+      result.workArrangement.restrictions,
+      authorizationRestriction.text
+    );
+
+    if (
+      authorizationRestriction.country ===
+        "united states" &&
+      !profile.workPreferences
+        .hasUSWorkAuthorization
+    ) {
+      addUnique(
+        result.blockers,
+        authorizationRestriction.text
       );
     }
   }
