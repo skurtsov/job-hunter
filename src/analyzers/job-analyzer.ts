@@ -1960,7 +1960,7 @@ export function extractRequiredYears(
  * Code:
  *   invariants and facts that should never randomly change
  */
-function postProcessAnalysis(
+export function postProcessAnalysis(
   analysis: JobAnalysis,
   job: Job,
   profile: CandidateProfile
@@ -2096,22 +2096,25 @@ function postProcessAnalysis(
       job.description
     );
 
-  if (
-    deterministicWorkArrangement.type !==
-    "unknown"
-  ) {
-    result.workArrangement.type =
-      deterministicWorkArrangement.type;
+  /*
+   * The deterministic classifier is authoritative.
+   *
+   * Positive B2B/employment classifications require
+   * explicit evidence in the job description. If no such
+   * evidence exists, an optimistic LLM classification must
+   * be downgraded to unknown.
+   */
+  result.workArrangement.type =
+    deterministicWorkArrangement.type;
 
-    for (
-      const evidence
-      of deterministicWorkArrangement.evidence
-    ) {
-      addUnique(
-        result.workArrangement.restrictions,
-        `Work-arrangement evidence: ${evidence}`
-      );
-    }
+  for (
+    const evidence
+    of deterministicWorkArrangement.evidence
+  ) {
+    addUnique(
+      result.workArrangement.restrictions,
+      `Work-arrangement evidence: ${evidence}`
+    );
   }
 
   /*
