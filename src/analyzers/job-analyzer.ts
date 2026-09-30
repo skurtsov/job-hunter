@@ -1601,7 +1601,7 @@ export function detectExplicitLocationRestriction(
       normalizeLocationText(
         job.location ?? ""
       ).replace(
-        /\\bus\\b/g,
+        /\bus\b/g,
         "united states"
       );
 
