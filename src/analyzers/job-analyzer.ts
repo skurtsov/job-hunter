@@ -1600,6 +1600,9 @@ export function detectExplicitLocationRestriction(
     const jobLocation =
       normalizeLocationText(
         job.location ?? ""
+      ).replace(
+        /\\bus\\b/g,
+        "united states"
       );
 
     const knownCountries = [
