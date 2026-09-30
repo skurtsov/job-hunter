@@ -1,5 +1,8 @@
 import type { Job } from "../types.js";
-import { askBedrock } from "../llm/bedrock-client.js";
+import {
+  askBedrock,
+  isBedrockAuthenticationError,
+} from "../llm/bedrock-client.js";
 
 export type WorkArrangement =
   | "b2b_possible"
@@ -1499,6 +1502,33 @@ function sanitizeMatchedSkills(
   return sanitized;
 }
 
+/**
+ * Keep non-skill eligibility requirements out of the
+ * technical missingRequired bucket. Eligibility/blockers
+ * are handled separately by deterministic rules.
+ */
+function sanitizeMissingRequired(
+  missing: string[]
+): string[] {
+  const nonSkillPatterns = [
+    /\blocation\b/i,
+    /\bwork[- ]?authorization\b/i,
+    /\bauthori[sz]ed to work\b/i,
+    /\bright to work\b/i,
+    /\bvisa\b/i,
+    /\bresid(?:e|ency|ing)\b/i,
+    /\bbased in\b/i,
+    /\b(?:east|west) coast\b/i,
+  ];
+
+  return missing.filter(
+    (item) =>
+      !nonSkillPatterns.some(
+        (pattern) => pattern.test(item)
+      )
+  );
+}
+
 type ExplicitLocationRestriction = {
   text: string;
   locationText: string;
@@ -2051,6 +2081,11 @@ export function postProcessAnalysis(
         analysis.skills.matched,
         profile
       ),
+
+      missingRequired:
+        sanitizeMissingRequired(
+          analysis.skills.missingRequired
+        ),
     },
 
     experience: {
@@ -2434,6 +2469,14 @@ export async function analyzeJobWithRequester(
       );
     } catch (error) {
       lastError = error;
+
+      // Re-authentication is required; repeating the same
+      // request cannot repair an expired AWS session.
+      if (
+        isBedrockAuthenticationError(error)
+      ) {
+        throw error;
+      }
 
       if (
         attempt >= ANALYSIS_MAX_ATTEMPTS
