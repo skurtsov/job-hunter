@@ -1495,6 +1495,11 @@ function stripHtml(
   value: string
 ): string {
   return value
+    // Greenhouse may return HTML as escaped entities.
+    // Decode tag delimiters before removing tags so a
+    // location regex cannot accidentally capture markup.
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&#39;/gi, "'")
