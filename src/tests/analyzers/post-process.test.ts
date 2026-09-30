@@ -538,3 +538,63 @@ test(
     assert.equal(calls, 2);
   }
 );
+
+
+test(
+  "removes location and authorization items from missing required skills",
+  () => {
+    const result = postProcessAnalysis(
+      makeAnalysis({
+        skills: {
+          score: 70,
+          matched: ["TypeScript"],
+          missingRequired: [
+            "Kubernetes",
+            "East Coast location",
+            "US work authorization",
+            "Must be based in Canada",
+          ],
+          missingPreferred: [],
+        },
+      }),
+      makeJob(),
+      CANDIDATE_PROFILE
+    );
+
+    assert.deepEqual(
+      result.skills.missingRequired,
+      ["Kubernetes"]
+    );
+  }
+);
+
+test(
+  "complete analysis does not retry authentication failures",
+  async () => {
+    let calls = 0;
+
+    const requester = async () => {
+      calls++;
+
+      const error = new Error(
+        "The security token included in the request is expired"
+      );
+      error.name =
+        "ExpiredTokenException";
+
+      throw error;
+    };
+
+    await assert.rejects(
+      () =>
+        analyzeJobWithRequester(
+          makeJob(),
+          CANDIDATE_PROFILE,
+          requester
+        ),
+      /security token/i
+    );
+
+    assert.equal(calls, 1);
+  }
+);
