@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  analyzeJobWithRequester,
   postProcessAnalysis,
   type JobAnalysis,
 } from "../../analyzers/job-analyzer.js";
@@ -424,5 +425,116 @@ test(
         "US work authorization is explicitly required"
       )
     );
+  }
+);
+
+
+test(
+  "retries complete analysis after malformed JSON",
+  async () => {
+    let calls = 0;
+
+    const validAnalysis =
+      makeAnalysis({
+        overallScore: 86,
+      });
+
+    const requester = async () => {
+      calls++;
+
+      if (calls === 1) {
+        return {
+          text: '{"overallScore": 86,',
+        };
+      }
+
+      return {
+        text: JSON.stringify(
+          validAnalysis
+        ),
+      };
+    };
+
+    const result =
+      await analyzeJobWithRequester(
+        makeJob({
+          location: "Remote",
+        }),
+        CANDIDATE_PROFILE,
+        requester
+      );
+
+    assert.equal(calls, 2);
+    assert.equal(
+      result.overallScore,
+      86
+    );
+  }
+);
+
+test(
+  "retries complete analysis after schema validation failure",
+  async () => {
+    let calls = 0;
+
+    const requester = async () => {
+      calls++;
+
+      if (calls === 1) {
+        return {
+          text: JSON.stringify({
+            overallScore: 150,
+          }),
+        };
+      }
+
+      return {
+        text: JSON.stringify(
+          makeAnalysis()
+        ),
+      };
+    };
+
+    const result =
+      await analyzeJobWithRequester(
+        makeJob({
+          location: "Remote",
+        }),
+        CANDIDATE_PROFILE,
+        requester
+      );
+
+    assert.equal(calls, 2);
+    assert.equal(
+      result.overallScore,
+      80
+    );
+  }
+);
+
+test(
+  "complete analysis retry stops after second invalid response",
+  async () => {
+    let calls = 0;
+
+    const requester = async () => {
+      calls++;
+
+      return {
+        text: '{"truncated":',
+      };
+    };
+
+    await assert.rejects(
+      () =>
+        analyzeJobWithRequester(
+          makeJob(),
+          CANDIDATE_PROFILE,
+          requester
+        ),
+      /Failed to parse Bedrock JSON response/
+    );
+
+    assert.equal(calls, 2);
   }
 );
