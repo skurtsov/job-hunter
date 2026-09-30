@@ -23,6 +23,10 @@ export type MatchRecommendation =
   | "possible_match"
   | "weak_match";
 
+export type EligibilityStatus =
+  | "ineligible"
+  | "uncertain";
+
 export type CandidateProfile = {
   title: string;
   yearsOfExperience: number;
@@ -73,6 +77,16 @@ export type JobAnalysis = {
   };
 
   blockers: string[];
+
+  /*
+   * Eligibility is deterministic and separate from
+   * technical match. It is added during post-processing,
+   * so raw LLM output does not need to provide it.
+   */
+  eligibility?: {
+    status: EligibilityStatus;
+    reasons: string[];
+  };
 
   recommendation: MatchRecommendation;
 
@@ -2208,6 +2222,50 @@ export function postProcessAnalysis(
       );
     }
   }
+
+  /*
+   * -----------------------------------------
+   * Eligibility
+   * -----------------------------------------
+   *
+   * Keep technical match separate from whether the
+   * candidate can actually take the role. We only mark a
+   * vacancy ineligible when deterministic evidence proves
+   * it. Otherwise eligibility remains uncertain rather
+   * than being optimistically inferred.
+   */
+
+  const eligibilityReasons: string[] = [];
+
+  if (
+    explicitLocationRestriction &&
+    locationRequirementSatisfied === false
+  ) {
+    addUnique(
+      eligibilityReasons,
+      explicitLocationRestriction.text
+    );
+  }
+
+  if (
+    authorizationRestriction?.country ===
+      "united states" &&
+    !profile.workPreferences
+      .hasUSWorkAuthorization
+  ) {
+    addUnique(
+      eligibilityReasons,
+      authorizationRestriction.text
+    );
+  }
+
+  result.eligibility = {
+    status:
+      eligibilityReasons.length > 0
+        ? "ineligible"
+        : "uncertain",
+    reasons: eligibilityReasons,
+  };
 
   /*
    * -----------------------------------------
