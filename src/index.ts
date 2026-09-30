@@ -293,6 +293,13 @@ async function main(): Promise<void> {
       );
 
       console.log(
+        `Eligibility: ${
+          analysis.eligibility?.status ??
+          "uncertain"
+        }`
+      );
+
+      console.log(
         `Matched: ${
           analysis.skills.matched.join(", ") ||
           "none"
@@ -468,8 +475,19 @@ async function main(): Promise<void> {
     `Possible matches: ${possibleMatches}`
   );
 
+  const ineligible =
+    analyzedJobs.filter(
+      (item) =>
+        item.analysis.eligibility?.status ===
+        "ineligible"
+    ).length;
+
   console.log(
     `Weak matches:     ${weakMatches}`
+  );
+
+  console.log(
+    `Ineligible:       ${ineligible}`
   );
 
   console.log(
@@ -524,6 +542,13 @@ async function main(): Promise<void> {
 
       console.log(
         `Recommendation: ${item.analysis.recommendation}`
+      );
+
+      console.log(
+        `Eligibility: ${
+          item.analysis.eligibility?.status ??
+          "uncertain"
+        }`
       );
 
       console.log(
