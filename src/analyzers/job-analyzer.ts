@@ -2394,27 +2394,75 @@ export function postProcessAnalysis(
   return result;
 }
 
-export async function analyzeJob(
+const ANALYSIS_MAX_ATTEMPTS = 2;
+
+export type AnalysisRequester = (
+  prompt: string
+) => Promise<{ text: string }>;
+
+export async function analyzeJobWithRequester(
   job: Job,
-  profile: CandidateProfile
+  profile: CandidateProfile,
+  requester: AnalysisRequester
 ): Promise<JobAnalysis> {
   const prompt = buildPrompt(
     job,
     profile
   );
 
-  const response =
-    await askBedrock(prompt);
+  let lastError: unknown;
 
-  const parsed =
-    parseModelJson(response.text);
+  for (
+    let attempt = 1;
+    attempt <= ANALYSIS_MAX_ATTEMPTS;
+    attempt++
+  ) {
+    try {
+      const response =
+        await requester(prompt);
 
-  const validated =
-    validateAnalysis(parsed);
+      const parsed =
+        parseModelJson(response.text);
 
-  return postProcessAnalysis(
-    validated,
+      const validated =
+        validateAnalysis(parsed);
+
+      return postProcessAnalysis(
+        validated,
+        job,
+        profile
+      );
+    } catch (error) {
+      lastError = error;
+
+      if (
+        attempt >= ANALYSIS_MAX_ATTEMPTS
+      ) {
+        throw error;
+      }
+
+      console.warn(
+        [
+          `Job analysis attempt ${attempt}/${ANALYSIS_MAX_ATTEMPTS} failed.`,
+          "Retrying complete analysis...",
+          error instanceof Error
+            ? error.message
+            : String(error),
+        ].join(" ")
+      );
+    }
+  }
+
+  throw lastError;
+}
+
+export async function analyzeJob(
+  job: Job,
+  profile: CandidateProfile
+): Promise<JobAnalysis> {
+  return analyzeJobWithRequester(
     job,
-    profile
+    profile,
+    askBedrock
   );
 }
