@@ -324,3 +324,105 @@ test(
     );
   }
 );
+
+
+test(
+  "technical match stays strong while explicit location restriction marks role ineligible",
+  () => {
+    const job = createJob({
+      title: "Senior Software Engineer",
+      location: "Remote Canada",
+      description:
+        "Candidates must reside in Canada.",
+    });
+
+    const result = postProcessAnalysis(
+      createAnalysis({
+        overallScore: 91,
+      }),
+      job,
+      CANDIDATE_PROFILE
+    );
+
+    assert.equal(
+      result.recommendation,
+      "strong_match"
+    );
+    assert.equal(
+      result.eligibility?.status,
+      "ineligible"
+    );
+    assert.ok(
+      result.eligibility?.reasons.some(
+        (reason) =>
+          reason.includes("Canada")
+      )
+    );
+  }
+);
+
+test(
+  "absence of deterministic eligibility blocker remains uncertain",
+  () => {
+    const job = createJob({
+      title: "Senior Software Engineer",
+      location: "Remote",
+      description:
+        "Remote software engineering role.",
+    });
+
+    const result = postProcessAnalysis(
+      createAnalysis({
+        overallScore: 90,
+      }),
+      job,
+      CANDIDATE_PROFILE
+    );
+
+    assert.equal(
+      result.recommendation,
+      "strong_match"
+    );
+    assert.deepEqual(
+      result.eligibility,
+      {
+        status: "uncertain",
+        reasons: [],
+      }
+    );
+  }
+);
+
+test(
+  "explicit US authorization requirement marks role ineligible without changing technical recommendation",
+  () => {
+    const job = createJob({
+      title: "Senior Software Engineer",
+      location: "Remote US",
+      description:
+        "Must be authorized to work in the United States.",
+    });
+
+    const result = postProcessAnalysis(
+      createAnalysis({
+        overallScore: 88,
+      }),
+      job,
+      CANDIDATE_PROFILE
+    );
+
+    assert.equal(
+      result.recommendation,
+      "strong_match"
+    );
+    assert.equal(
+      result.eligibility?.status,
+      "ineligible"
+    );
+    assert.ok(
+      result.eligibility?.reasons.includes(
+        "US work authorization is explicitly required"
+      )
+    );
+  }
+);
