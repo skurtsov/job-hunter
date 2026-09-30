@@ -209,3 +209,41 @@ test(
     );
   }
 );
+
+
+test(
+  "escaped Greenhouse HTML does not leak into residency restriction",
+  () => {
+    const job = createJob(
+      "Remote Canada",
+      [
+        "&lt;p&gt;This role is open only to candidates residing in",
+        "Alberta, British Columbia, Manitoba, New Brunswick,",
+        "Newfoundland and Labrador, Nova Scotia, Ontario,",
+        "Prince Edward Island, or Saskatchewan.&lt;/p&gt;",
+        "&lt;p&gt;&lt;strong&gt;Pay Grade - N&lt;/strong&gt;&lt;/p&gt;",
+      ].join(" ")
+    );
+
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+    assert.equal(
+      restriction.locationText.includes(
+        "&lt;"
+      ),
+      false
+    );
+    assert.equal(
+      restriction.locationText.includes(
+        "Pay Grade"
+      ),
+      false
+    );
+    assert.match(
+      restriction.locationText,
+      /Saskatchewan$/i
+    );
+  }
+);
