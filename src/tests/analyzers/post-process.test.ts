@@ -329,7 +329,7 @@ test(
 test(
   "technical match stays strong while explicit location restriction marks role ineligible",
   () => {
-    const job = createJob({
+    const job = makeJob({
       title: "Senior Software Engineer",
       location: "Remote Canada",
       description:
@@ -337,7 +337,7 @@ test(
     });
 
     const result = postProcessAnalysis(
-      createAnalysis({
+      makeAnalysis({
         overallScore: 91,
       }),
       job,
@@ -364,7 +364,7 @@ test(
 test(
   "absence of deterministic eligibility blocker remains uncertain",
   () => {
-    const job = createJob({
+    const job = makeJob({
       title: "Senior Software Engineer",
       location: "Remote",
       description:
@@ -372,7 +372,7 @@ test(
     });
 
     const result = postProcessAnalysis(
-      createAnalysis({
+      makeAnalysis({
         overallScore: 90,
       }),
       job,
@@ -396,7 +396,7 @@ test(
 test(
   "explicit US authorization requirement marks role ineligible without changing technical recommendation",
   () => {
-    const job = createJob({
+    const job = makeJob({
       title: "Senior Software Engineer",
       location: "Remote US",
       description:
@@ -404,7 +404,7 @@ test(
     });
 
     const result = postProcessAnalysis(
-      createAnalysis({
+      makeAnalysis({
         overallScore: 88,
       }),
       job,
