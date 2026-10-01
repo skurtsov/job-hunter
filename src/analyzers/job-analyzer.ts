@@ -2057,6 +2057,68 @@ export function extractRequiredYears(
   return Math.max(...matches);
 }
 
+export type DeterministicEligibility = {
+  status: EligibilityStatus;
+  reasons: string[];
+};
+
+/**
+ * Cheap eligibility check that can run before Bedrock.
+ *
+ * Only proven blockers are rejected here. Anything we cannot
+ * determine safely stays uncertain and is still sent to AI.
+ */
+export function detectDeterministicEligibility(
+  job: Job,
+  profile: CandidateProfile
+): DeterministicEligibility {
+  const reasons: string[] = [];
+
+  const locationRestriction =
+    detectExplicitLocationRestriction(job);
+
+  if (locationRestriction) {
+    const satisfied =
+      candidateSatisfiesLocationRestriction(
+        locationRestriction,
+        job,
+        profile
+      );
+
+    if (satisfied === false) {
+      addUnique(
+        reasons,
+        locationRestriction.text
+      );
+    }
+  }
+
+  const authorizationRestriction =
+    detectExplicitWorkAuthorizationRestriction(
+      job.description
+    );
+
+  if (
+    authorizationRestriction?.country ===
+      "united states" &&
+    !profile.workPreferences
+      .hasUSWorkAuthorization
+  ) {
+    addUnique(
+      reasons,
+      authorizationRestriction.text
+    );
+  }
+
+  return {
+    status:
+      reasons.length > 0
+        ? "ineligible"
+        : "uncertain",
+    reasons,
+  };
+}
+
 /**
  * Apply deterministic corrections after the LLM response.
  *
