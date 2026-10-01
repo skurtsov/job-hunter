@@ -11,24 +11,100 @@ import type { JobAnalysis } from "../analyzers/job-analyzer.js";
 
 export type AnalyzedJob = {
   job: Job;
-
   analysis: JobAnalysis;
-
-  /**
-   * Preliminary deterministic tech score
-   * calculated before the expensive LLM analysis.
-   */
   preliminaryTechScore?: number;
-
   analyzedAt: string;
 };
 
+function csvCell(
+  value: string | number | boolean | null | undefined
+): string {
+  const text =
+    value === null || value === undefined
+      ? ""
+      : String(value);
+
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function joinValues(
+  values: string[] | undefined
+): string {
+  return values?.join("; ") ?? "";
+}
+
+function toCsv(
+  analyzedJobs: AnalyzedJob[]
+): string {
+  const headers = [
+    "company",
+    "title",
+    "location",
+    "overall_score",
+    "preliminary_tech_score",
+    "recommendation",
+    "eligibility",
+    "eligibility_reasons",
+    "work_arrangement",
+    "work_restrictions",
+    "seniority_required",
+    "seniority_candidate",
+    "seniority_match",
+    "required_years",
+    "candidate_years",
+    "skills_score",
+    "matched_skills",
+    "missing_required",
+    "missing_preferred",
+    "blockers",
+    "reasoning",
+    "apply_url",
+    "source",
+    "published_at",
+    "analyzed_at",
+  ];
+
+  const rows = analyzedJobs.map(
+    ({ job, analysis, preliminaryTechScore, analyzedAt }) => [
+      job.company,
+      job.title,
+      job.location,
+      analysis.overallScore,
+      preliminaryTechScore,
+      analysis.recommendation,
+      analysis.eligibility?.status ?? "uncertain",
+      joinValues(analysis.eligibility?.reasons),
+      analysis.workArrangement.type,
+      joinValues(analysis.workArrangement.restrictions),
+      analysis.seniority.required,
+      analysis.seniority.candidate,
+      analysis.seniority.match,
+      analysis.experience.requiredYears,
+      analysis.experience.candidateYears,
+      analysis.skills.score,
+      joinValues(analysis.skills.matched),
+      joinValues(analysis.skills.missingRequired),
+      joinValues(analysis.skills.missingPreferred),
+      joinValues(analysis.blockers),
+      analysis.reasoning,
+      job.applyUrl,
+      job.source,
+      job.publishedAt?.toISOString() ?? "",
+      analyzedAt,
+    ]
+  );
+
+  return [
+    headers.map(csvCell).join(","),
+    ...rows.map(
+      (row) =>
+        row.map(csvCell).join(",")
+    ),
+  ].join("\n") + "\n";
+}
+
 /**
- * Creates a unique output path for ONE batch run.
- *
- * Important:
- * this function should be called only once when
- * the batch starts.
+ * Creates one CSV output path for the batch.
  */
 export async function createAnalysisOutputPath(): Promise<string> {
   const outputDirectory = path.resolve(
@@ -50,17 +126,16 @@ export async function createAnalysisOutputPath(): Promise<string> {
 
   return path.join(
     outputDirectory,
-    `jobs-${timestamp}.json`
+    `jobs-${timestamp}.csv`
   );
 }
 
 /**
- * Saves the complete current batch state.
+ * Crash-safe CSV checkpoint.
  *
- * We write to a temporary file first and then rename it.
- *
- * This prevents a partially-written JSON file if the
- * process crashes while writeFile() is running.
+ * The complete current result set is rewritten after each
+ * successful analysis so a stopped batch still leaves a
+ * valid CSV with everything completed so far.
  */
 export async function saveAnalyzedJobsToFile(
   outputPath: string,
@@ -69,15 +144,12 @@ export async function saveAnalyzedJobsToFile(
   const temporaryPath =
     `${outputPath}.tmp`;
 
-  const json = JSON.stringify(
-    analyzedJobs,
-    null,
-    2
-  );
+  const csv =
+    toCsv(analyzedJobs);
 
   await writeFile(
     temporaryPath,
-    json,
+    csv,
     "utf8"
   );
 
@@ -87,15 +159,6 @@ export async function saveAnalyzedJobsToFile(
   );
 }
 
-/**
- * Compatibility helper for the existing single-job test.
- *
- * test-job-analyzer.ts can continue calling:
- *
- * saveAnalyzedJobs([...])
- *
- * without needing to be changed right now.
- */
 export async function saveAnalyzedJobs(
   analyzedJobs: AnalyzedJob[]
 ): Promise<string> {
