@@ -16,6 +16,7 @@ import {
 
 import {
   analyzeJob,
+  detectDeterministicEligibility,
 } from "./analyzers/job-analyzer.js";
 
 import {
@@ -122,6 +123,35 @@ async function main(): Promise<void> {
     `Shortlisted: ${shortlist.length}`
   );
 
+  const eligibleShortlist =
+    shortlist.filter((item) => {
+      const representativeJob =
+        item.job.jobs[0];
+
+      if (!representativeJob) {
+        return true;
+      }
+
+      return (
+        detectDeterministicEligibility(
+          representativeJob,
+          CANDIDATE_PROFILE
+        ).status !== "ineligible"
+      );
+    });
+
+  const prefilteredIneligible =
+    shortlist.length -
+    eligibleShortlist.length;
+
+  console.log(
+    `Pre-filtered ineligible: ${prefilteredIneligible}`
+  );
+
+  console.log(
+    `Sending to Bedrock: ${eligibleShortlist.length}`
+  );
+
   /*
    * -----------------------------------------
    * 3. Create ONE output file for this run
@@ -140,6 +170,12 @@ async function main(): Promise<void> {
     console.log("Output files:     0");
     console.log(
       `Shortlisted:      ${shortlist.length}`
+    );
+    console.log(
+      `Would analyze:     ${eligibleShortlist.length}`
+    );
+    console.log(
+      `Ineligible skipped: ${prefilteredIneligible}`
     );
 
     for (
@@ -208,7 +244,7 @@ async function main(): Promise<void> {
 
   for (
     const [index, item]
-    of shortlist.entries()
+    of eligibleShortlist.entries()
   ) {
     const representativeJob =
       item.job.jobs[0];
@@ -217,7 +253,7 @@ async function main(): Promise<void> {
       failed++;
 
       console.error(
-        `[${index + 1}/${shortlist.length}] ` +
+        `[${index + 1}/${eligibleShortlist.length}] ` +
           `Skipped: ${item.job.title} — no representative job`
       );
 
@@ -225,7 +261,7 @@ async function main(): Promise<void> {
     }
 
     console.log(
-      `\n[${index + 1}/${shortlist.length}] ` +
+      `\n[${index + 1}/${eligibleShortlist.length}] ` +
         `${item.job.company} — ${item.job.title}`
     );
 
@@ -380,7 +416,7 @@ async function main(): Promise<void> {
 
     if (
       index <
-      shortlist.length - 1
+      eligibleShortlist.length - 1
     ) {
       await sleep(
         BEDROCK_DELAY_MS
@@ -456,6 +492,10 @@ async function main(): Promise<void> {
   );
 
   console.log(
+    `Pre-filtered:     ${prefilteredIneligible}`
+  );
+
+  console.log(
     `Analyzed:         ${succeeded}`
   );
 
@@ -501,10 +541,16 @@ async function main(): Promise<void> {
    */
 
   const topMatches =
-    analyzedJobs.slice(
-      0,
-      10
-    );
+    analyzedJobs
+      .filter(
+        (item) =>
+          item.analysis.eligibility?.status !==
+          "ineligible"
+      )
+      .slice(
+        0,
+        10
+      );
 
   if (
     topMatches.length > 0
