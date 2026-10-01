@@ -3,6 +3,10 @@ import {
 } from "./collectors/greenhouse.js";
 
 import {
+  GREENHOUSE_COMPANIES,
+} from "./config/greenhouse-companies.js";
+
+import {
   filterJobs,
 } from "./filters/job-filter.js";
 
@@ -82,11 +86,41 @@ async function main(): Promise<void> {
     "\nCollecting jobs..."
   );
 
-  const jobs =
-    await collectGreenhouseJobs(
-      "affirm",
-      "Affirm"
+  const collectionResults =
+    await Promise.allSettled(
+      GREENHOUSE_COMPANIES.map(
+        ({ boardToken, company }) =>
+          collectGreenhouseJobs(
+            boardToken,
+            company
+          )
+      )
     );
+
+  const jobs = collectionResults.flatMap(
+    (result, index) => {
+      const source =
+        GREENHOUSE_COMPANIES[index];
+
+      if (result.status === "fulfilled") {
+        console.log(
+          `Collected ${result.value.length}: ${source?.company ?? "Unknown"}`
+        );
+
+        return result.value;
+      }
+
+      console.error(
+        `Failed to collect ${source?.company ?? "Unknown"}: ${
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason)
+        }`
+      );
+
+      return [];
+    }
+  );
 
   /*
    * -----------------------------------------
