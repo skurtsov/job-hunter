@@ -247,7 +247,7 @@ async function main(): Promise<void> {
    * Create the file immediately.
    *
    * Even if the first Bedrock request fails,
-   * we'll still have a valid [] JSON file.
+   * we'll still have a valid CSV with headers.
    */
 
   await saveAnalyzedJobsToFile(
@@ -332,7 +332,7 @@ async function main(): Promise<void> {
 
       /*
        * Keep the best jobs at the top of the
-       * JSON file even while the batch is running.
+       * CSV file even while the batch is running.
        */
 
       analyzedJobs.sort(
