@@ -1628,6 +1628,38 @@ export function detectExplicitLocationRestriction(
     };
   }
 
+  const locatedInMatch = description.match(
+    /(?:must|required to)\s+(?:be\s+)?located\s+(?:in|within)\s+([^.!?]+)/i
+  );
+
+  if (locatedInMatch?.[1]) {
+    const locationText =
+      locatedInMatch[1].trim();
+
+    return {
+      text:
+        `Candidate must be located in ${locationText}`,
+      locationText,
+      kind: "based_in",
+    };
+  }
+
+  const onSiteMatch = description.match(
+    /(?:on[- ]site|in[- ]office|work\s+from\s+(?:our|the)\s+office)\s+(?:presence\s+)?(?:in|at)\s+([^.!?]+)/i
+  );
+
+  if (onSiteMatch?.[1]) {
+    const locationText =
+      onSiteMatch[1].trim();
+
+    return {
+      text:
+        `Role requires on-site presence in ${locationText}`,
+      locationText,
+      kind: "based_in",
+    };
+  }
+
   /*
    * Some remote-first postings describe the geographic
    * restriction indirectly:
@@ -1665,6 +1697,7 @@ export function detectExplicitLocationRestriction(
       "italy",
       "portugal",
       "ireland",
+      "taiwan",
     ];
 
     const country =
@@ -1718,6 +1751,9 @@ const COUNTRY_REGION_HINTS: Record<
     "quebec",
     "saskatchewan",
   ],
+  taiwan: [
+    "taipei",
+  ],
 };
 
 function inferRestrictionCountry(
@@ -1740,7 +1776,30 @@ function inferRestrictionCountry(
     "italy",
     "portugal",
     "ireland",
+    "taiwan",
   ];
+
+  const regionRules: Array<{
+    pattern: RegExp;
+    candidateMatches: boolean;
+  }> = [
+    {
+      pattern: /\bamericas?\b|\bnorth america\b/i,
+      candidateMatches: false,
+    },
+    {
+      pattern: /\beurope\b|\beu\b|\bemea\b/i,
+      candidateMatches: true,
+    },
+  ];
+
+  for (const rule of regionRules) {
+    if (rule.pattern.test(restrictionText)) {
+      return rule.candidateMatches
+        ? candidateCountry
+        : "__outside_candidate_region__";
+    }
+  }
 
   for (const country of knownCountries) {
     if (restrictionText.includes(country)) {
