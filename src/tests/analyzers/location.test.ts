@@ -247,3 +247,96 @@ test(
     );
   }
 );
+
+
+test(
+  "explicit Americas location requirement rejects candidate in Spain",
+  () => {
+    const job = createJob(
+      "Remote",
+      "Candidates must be located within the Americas."
+    );
+
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      false
+    );
+  }
+);
+
+test(
+  "explicit EMEA location requirement accepts candidate in Spain",
+  () => {
+    const job = createJob(
+      "Remote EMEA",
+      "Candidates must be located within EMEA."
+    );
+
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      true
+    );
+  }
+);
+
+test(
+  "explicit on-site Toronto requirement rejects candidate in Spain",
+  () => {
+    const job = createJob(
+      "Toronto, Canada",
+      "This role requires on-site presence in Toronto."
+    );
+
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      false
+    );
+  }
+);
+
+test(
+  "explicit Taipei location requirement rejects candidate in Spain",
+  () => {
+    const job = createJob(
+      "Taipei, Taiwan",
+      "Candidates must be located in Taipei."
+    );
+
+    const restriction =
+      detectExplicitLocationRestriction(job);
+
+    assert.ok(restriction);
+    assert.equal(
+      candidateSatisfiesLocationRestriction(
+        restriction,
+        job,
+        CANDIDATE_PROFILE
+      ),
+      false
+    );
+  }
+);
