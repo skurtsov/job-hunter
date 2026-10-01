@@ -257,12 +257,12 @@ export async function saveAnalyzedJobsToExcel(
               ? "FFFFEB9C"
               : "FFFFC7CE";
 
-    for (const cell of row.eachCell()) {
+    row.eachCell((cell) => {
       cell.alignment = {
         vertical: "top",
         wrapText: true,
       };
-    }
+    });
 
     for (let column = 1; column <= 6; column++) {
       row.getCell(column).fill = {
