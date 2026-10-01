@@ -1779,28 +1779,6 @@ function inferRestrictionCountry(
     "taiwan",
   ];
 
-  const regionRules: Array<{
-    pattern: RegExp;
-    candidateMatches: boolean;
-  }> = [
-    {
-      pattern: /\bamericas?\b|\bnorth america\b/i,
-      candidateMatches: false,
-    },
-    {
-      pattern: /\beurope\b|\beu\b|\bemea\b/i,
-      candidateMatches: true,
-    },
-  ];
-
-  for (const rule of regionRules) {
-    if (rule.pattern.test(restrictionText)) {
-      return rule.candidateMatches
-        ? candidateCountry
-        : "__outside_candidate_region__";
-    }
-  }
-
   for (const country of knownCountries) {
     if (restrictionText.includes(country)) {
       return country;
@@ -1843,6 +1821,27 @@ export function candidateSatisfiesLocationRestriction(
     normalizeLocationText(
       profile.location.country
     );
+
+  const restrictionText =
+    normalizeLocationText(
+      restriction.locationText
+    );
+
+  if (
+    /\bamericas?\b|\bnorth america\b/i.test(
+      restrictionText
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    /\beurope\b|\beu\b|\bemea\b/i.test(
+      restrictionText
+    )
+  ) {
+    return candidateCountry === "spain";
+  }
 
   const restrictionCountry =
     inferRestrictionCountry(
