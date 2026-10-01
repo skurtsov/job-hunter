@@ -28,10 +28,56 @@ export type DeduplicatedJob = {
  *
  * "software engineer ii backend furnishing platform"
  */
-function normalizeTitle(
-  title: string
+function stripTrailingLocation(
+  title: string,
+  location: string | null
 ): string {
-  return title
+  if (!location) {
+    return title;
+  }
+
+  const normalizedTitle =
+    title.trim();
+
+  const normalizedLocation =
+    location.trim();
+
+  const separators = [
+    " - ",
+    " – ",
+    " — ",
+  ];
+
+  for (const separator of separators) {
+    const suffix =
+      separator +
+      normalizedLocation;
+
+    if (
+      normalizedTitle
+        .toLowerCase()
+        .endsWith(
+          suffix.toLowerCase()
+        )
+    ) {
+      return normalizedTitle.slice(
+        0,
+        -suffix.length
+      );
+    }
+  }
+
+  return title;
+}
+
+function normalizeTitle(
+  title: string,
+  location: string | null = null
+): string {
+  return stripTrailingLocation(
+    title,
+    location
+  )
     .toLowerCase()
 
     /*
@@ -84,7 +130,8 @@ function createKey(
 
   const normalizedTitle =
     normalizeTitle(
-      job.title
+      job.title,
+      job.location
     );
 
   return (
