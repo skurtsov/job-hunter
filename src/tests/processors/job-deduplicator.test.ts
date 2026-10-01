@@ -134,3 +134,83 @@ test(
     );
   }
 );
+
+
+test(
+  "deduplicates city-specific variants when title suffix matches location",
+  () => {
+    const jobs = [
+      createJob(
+        "1",
+        "Software Engineer, Platform - Barcelona, Spain",
+        "Barcelona, Spain",
+        "https://example.com/barcelona",
+        "Speechify"
+      ),
+      createJob(
+        "2",
+        "Software Engineer, Platform - Madrid, Spain",
+        "Madrid, Spain",
+        "https://example.com/madrid",
+        "Speechify"
+      ),
+      createJob(
+        "3",
+        "Software Engineer, Platform - Berlin, Germany",
+        "Berlin, Germany",
+        "https://example.com/berlin",
+        "Speechify"
+      ),
+    ];
+
+    const result =
+      deduplicateJobs(jobs);
+
+    assert.equal(
+      result.length,
+      1
+    );
+
+    assert.equal(
+      result[0]?.jobs.length,
+      3
+    );
+
+    assert.deepEqual(
+      result[0]?.locations,
+      [
+        "Barcelona, Spain",
+        "Madrid, Spain",
+        "Berlin, Germany",
+      ]
+    );
+  }
+);
+
+test(
+  "does not strip a suffix that is not the structured location",
+  () => {
+    const jobs = [
+      createJob(
+        "1",
+        "Senior Software Engineer - Payments",
+        "Madrid, Spain",
+        "https://example.com/payments"
+      ),
+      createJob(
+        "2",
+        "Senior Software Engineer",
+        "Madrid, Spain",
+        "https://example.com/general"
+      ),
+    ];
+
+    const result =
+      deduplicateJobs(jobs);
+
+    assert.equal(
+      result.length,
+      2
+    );
+  }
+);
