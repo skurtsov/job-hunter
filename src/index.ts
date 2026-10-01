@@ -37,6 +37,10 @@ import {
   type AnalyzedJob,
 } from "./output/json-writer.js";
 
+import {
+  saveAnalyzedJobsToExcel,
+} from "./output/xlsx-writer.js";
+
 /**
  * Small delay between Bedrock requests.
  *
@@ -475,6 +479,12 @@ async function main(): Promise<void> {
     analyzedJobs
   );
 
+  const excelOutputPath =
+    await saveAnalyzedJobsToExcel(
+      outputPath,
+      analyzedJobs
+    );
+
   /*
    * -----------------------------------------
    * 6. Summary
@@ -565,7 +575,11 @@ async function main(): Promise<void> {
   );
 
   console.log(
-    `\nSaved to:\n${outputPath}`
+    `\nRaw CSV:\n${outputPath}`
+  );
+
+  console.log(
+    `\nExcel report:\n${excelOutputPath}`
   );
 
   /*
