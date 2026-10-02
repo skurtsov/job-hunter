@@ -5,6 +5,6 @@ export type Job = {
   location: string | null;
   description: string | null;
   applyUrl: string;
-  source: "greenhouse";
+  source: "greenhouse" | "lever";
   publishedAt: Date | null;
 };
