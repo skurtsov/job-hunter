@@ -220,8 +220,24 @@ async function main(): Promise<void> {
       const [index, item]
       of shortlist.entries()
     ) {
+      const representativeJob =
+        item.job.jobs[0];
+
+      const eligibility =
+        representativeJob
+          ? detectDeterministicEligibility(
+              representativeJob,
+              CANDIDATE_PROFILE
+            )
+          : { status: "uncertain" as const, reasons: [] };
+
+      const dryRunStatus =
+        eligibility.status === "ineligible"
+          ? "SKIP"
+          : "BEDROCK";
+
       console.log(
-        `\n#${index + 1} — ${item.techScore}%`
+        `\n#${index + 1} — ${item.techScore}% — ${dryRunStatus}`
       );
       console.log(
         `${item.job.company} — ${item.job.title}`
@@ -232,6 +248,11 @@ async function main(): Promise<void> {
           "Unknown"
         }`
       );
+      if (eligibility.reasons.length > 0) {
+        console.log(
+          `Skip reason: ${eligibility.reasons.join("; ")}`
+        );
+      }
       console.log(
         `Apply: ${
           item.job.applyUrls.join(", ")
