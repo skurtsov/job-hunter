@@ -75,8 +75,7 @@ export function isRetryableBedrockError(
     message.includes("timeout") ||
     message.includes("timed out") ||
     message.includes("service unavailable") ||
-    message.includes("temporarily unavailable") ||
-    message.includes("bedrock returned no assistant text")
+    message.includes("temporarily unavailable")
   );
 }
 
@@ -111,7 +110,7 @@ async function askBedrockOnce(
       // GPT OSS uses output tokens for reasoning too.
       // Job descriptions + structured analysis may require
       // substantially more than the simple test prompt.
-      maxTokens: 5000,
+      maxTokens: 3000,
 
       temperature: 0.1,
 
