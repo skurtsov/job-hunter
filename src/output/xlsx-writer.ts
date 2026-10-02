@@ -4,6 +4,37 @@ import type {
   AnalyzedJob,
 } from "./json-writer.js";
 
+export type FailedAnalysis = {
+  company: string;
+  title: string;
+  location: string;
+  applyUrl: string;
+  preliminaryTechScore: number;
+  error: string;
+};
+
+function actionFor(
+  item: AnalyzedJob
+): "APPLY" | "REVIEW" | "SKIP" {
+  const analysis = item.analysis;
+
+  if (
+    analysis.eligibility?.status === "ineligible" ||
+    analysis.recommendation === "weak_match"
+  ) {
+    return "SKIP";
+  }
+
+  if (
+    analysis.blockers.length > 0 ||
+    analysis.recommendation === "possible_match"
+  ) {
+    return "REVIEW";
+  }
+
+  return "APPLY";
+}
+
 function joinValues(
   values: string[] | undefined
 ): string {
@@ -20,7 +51,8 @@ function recommendationLabel(
 
 export async function saveAnalyzedJobsToExcel(
   csvOutputPath: string,
-  analyzedJobs: AnalyzedJob[]
+  analyzedJobs: AnalyzedJob[],
+  failedAnalyses: FailedAnalysis[] = []
 ): Promise<string> {
   const outputPath =
     csvOutputPath.replace(/\.csv$/i, ".xlsx");
@@ -62,6 +94,15 @@ export async function saveAnalyzedJobsToExcel(
       item.analysis.eligibility?.status ===
       "ineligible"
   ).length;
+  const applyCount = analyzedJobs.filter(
+    (item) => actionFor(item) === "APPLY"
+  ).length;
+  const reviewCount = analyzedJobs.filter(
+    (item) => actionFor(item) === "REVIEW"
+  ).length;
+  const skipCount = analyzedJobs.filter(
+    (item) => actionFor(item) === "SKIP"
+  ).length;
   const averageScore =
     total === 0
       ? 0
@@ -101,6 +142,10 @@ export async function saveAnalyzedJobsToExcel(
     ["Possible matches", possible, "FFFFEB9C"],
     ["Weak matches", weak, "FFFFC7CE"],
     ["Ineligible", ineligible, "FFFFC7CE"],
+    ["Apply", applyCount, "FFC6EFCE"],
+    ["Review", reviewCount, "FFFFEB9C"],
+    ["Skip", skipCount, "FFFFC7CE"],
+    ["Failed analysis", failedAnalyses.length, "FFFFC7CE"],
   ];
 
   metrics.forEach(
@@ -141,6 +186,7 @@ export async function saveAnalyzedJobsToExcel(
     });
 
   jobs.columns = [
+    { header: "Action", key: "action", width: 12 },
     { header: "Score", key: "score", width: 10 },
     { header: "Match", key: "recommendation", width: 18 },
     { header: "Company", key: "company", width: 20 },
@@ -186,7 +232,10 @@ export async function saveAnalyzedJobsToExcel(
   for (const item of sorted) {
     const analysis = item.analysis;
 
+    const action = actionFor(item);
+
     const row = jobs.addRow({
+      action,
       score: analysis.overallScore / 100,
       recommendation:
         recommendationLabel(
@@ -264,7 +313,7 @@ export async function saveAnalyzedJobsToExcel(
       };
     });
 
-    for (let column = 1; column <= 6; column++) {
+    for (let column = 1; column <= 7; column++) {
       row.getCell(column).fill = {
         type: "pattern",
         pattern: "solid",
@@ -277,12 +326,53 @@ export async function saveAnalyzedJobsToExcel(
 
   jobs.autoFilter = {
     from: "A1",
-    to: "R1",
+    to: "S1",
   };
+
+  jobs.getColumn("action").font = { bold: true };
 
   jobs.getColumn("score").alignment = {
     horizontal: "center",
   };
+
+  if (failedAnalyses.length > 0) {
+    const failed = workbook.addWorksheet("Failed");
+
+    failed.columns = [
+      { header: "Company", key: "company", width: 20 },
+      { header: "Position", key: "title", width: 44 },
+      { header: "Location", key: "location", width: 24 },
+      { header: "Pre-score", key: "score", width: 12 },
+      { header: "Error", key: "error", width: 70 },
+      { header: "Apply", key: "applyUrl", width: 16 },
+    ];
+
+    const failedHeader = failed.getRow(1);
+    failedHeader.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    failedHeader.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF1F4E78" },
+    };
+
+    for (const item of failedAnalyses) {
+      const row = failed.addRow({
+        company: item.company,
+        title: item.title,
+        location: item.location,
+        score: item.preliminaryTechScore / 100,
+        error: item.error,
+        applyUrl: { text: "Open vacancy", hyperlink: item.applyUrl },
+      });
+      row.getCell("score").numFmt = "0%";
+      row.eachCell((cell) => {
+        cell.alignment = { vertical: "top", wrapText: true };
+      });
+    }
+
+    failed.autoFilter = { from: "A1", to: "F1" };
+    failed.views = [{ state: "frozen", ySplit: 1 }];
+  }
 
   await workbook.xlsx.writeFile(
     outputPath
