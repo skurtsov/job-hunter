@@ -19,9 +19,6 @@ const retryable = [
     new Error("Service unavailable"),
     { name: "ServiceUnavailableException" }
   ),
-  new Error(
-    "Bedrock returned no assistant text. Stop reason: max_tokens"
-  ),
 ];
 
 for (const error of retryable) {
@@ -106,6 +103,21 @@ test(
 
     assert.equal(
       isBedrockAuthenticationError(error),
+      false
+    );
+  }
+);
+
+
+test(
+  "does not retry exhausted output budget at transport layer",
+  () => {
+    const error = new Error(
+      "Bedrock returned no assistant text. Stop reason: max_tokens"
+    );
+
+    assert.equal(
+      isRetryableBedrockError(error),
       false
     );
   }
