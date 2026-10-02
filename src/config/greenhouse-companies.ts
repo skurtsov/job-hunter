@@ -53,4 +53,24 @@ export const GREENHOUSE_COMPANIES: GreenhouseCompany[] = [
     boardToken: "canonical",
     company: "Canonical",
   },
+  {
+    boardToken: "thrivecart",
+    company: "ThriveCart",
+  },
+  {
+    boardToken: "databento",
+    company: "Databento",
+  },
+  {
+    boardToken: "infuse",
+    company: "INFUSE",
+  },
+  {
+    boardToken: "qualio",
+    company: "Qualio",
+  },
+  {
+    boardToken: "fluxon",
+    company: "Fluxon",
+  },
 ];
