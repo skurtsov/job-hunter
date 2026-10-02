@@ -7,6 +7,14 @@ import {
 } from "./config/greenhouse-companies.js";
 
 import {
+  collectLeverJobs,
+} from "./collectors/lever.js";
+
+import {
+  LEVER_COMPANIES,
+} from "./config/lever-companies.js";
+
+import {
   filterJobs,
 } from "./filters/job-filter.js";
 
@@ -91,32 +99,52 @@ async function main(): Promise<void> {
     "\nCollecting jobs..."
   );
 
-  const collectionResults =
-    await Promise.allSettled(
-      GREENHOUSE_COMPANIES.map(
-        ({ boardToken, company }) =>
+  const sources = [
+    ...GREENHOUSE_COMPANIES.map(
+      ({ boardToken, company }) => ({
+        company,
+        source: "Greenhouse",
+        collect: () =>
           collectGreenhouseJobs(
             boardToken,
             company
-          )
+          ),
+      })
+    ),
+    ...LEVER_COMPANIES.map(
+      ({ site, company }) => ({
+        company,
+        source: "Lever",
+        collect: () =>
+          collectLeverJobs(
+            site,
+            company
+          ),
+      })
+    ),
+  ];
+
+  const collectionResults =
+    await Promise.allSettled(
+      sources.map((source) =>
+        source.collect()
       )
     );
 
   const jobs = collectionResults.flatMap(
     (result, index) => {
-      const source =
-        GREENHOUSE_COMPANIES[index];
+      const source = sources[index];
 
       if (result.status === "fulfilled") {
         console.log(
-          `Collected ${result.value.length}: ${source?.company ?? "Unknown"}`
+          `Collected ${result.value.length}: ${source?.company ?? "Unknown"} [${source?.source ?? "Unknown"}]`
         );
 
         return result.value;
       }
 
       console.error(
-        `Failed to collect ${source?.company ?? "Unknown"}: ${
+        `Failed to collect ${source?.company ?? "Unknown"} [${source?.source ?? "Unknown"}]: ${
           result.reason instanceof Error
             ? result.reason.message
             : String(result.reason)
