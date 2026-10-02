@@ -39,6 +39,7 @@ import {
 
 import {
   saveAnalyzedJobsToExcel,
+  type FailedAnalysis,
 } from "./output/xlsx-writer.js";
 
 /**
@@ -267,6 +268,7 @@ async function main(): Promise<void> {
     await createAnalysisOutputPath();
 
   const analyzedJobs: AnalyzedJob[] = [];
+  const failedAnalyses: FailedAnalysis[] = [];
 
   /*
    * Create the file immediately.
@@ -429,6 +431,18 @@ async function main(): Promise<void> {
     } catch (error) {
       failed++;
 
+      failedAnalyses.push({
+        company: representativeJob.company,
+        title: representativeJob.title,
+        location: representativeJob.location ?? "Unknown",
+        applyUrl: representativeJob.applyUrl,
+        preliminaryTechScore: item.techScore,
+        error:
+          error instanceof Error
+            ? error.message
+            : String(error),
+      });
+
       console.error(
         `Analysis failed for: ${item.job.title}`
       );
@@ -503,7 +517,8 @@ async function main(): Promise<void> {
   const excelOutputPath =
     await saveAnalyzedJobsToExcel(
       outputPath,
-      analyzedJobs
+      analyzedJobs,
+      failedAnalyses
     );
 
   /*
