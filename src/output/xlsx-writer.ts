@@ -196,7 +196,7 @@ export async function saveAnalyzedJobsToExcel(
     { header: "Missing required", key: "missingRequired", width: 36 },
     { header: "Blockers", key: "blockers", width: 36 },
     { header: "Why", key: "reasoning", width: 60 },
-    { header: "Apply", key: "applyUrl", width: 16 },
+    { header: "Apply URL", key: "applyUrl", width: 55 },
     { header: "Matched skills", key: "matchedSkills", width: 45 },
     { header: "Skills score", key: "skillsScore", width: 12 },
     { header: "Work arrangement", key: "workArrangement", width: 18 },
@@ -256,7 +256,7 @@ export async function saveAnalyzedJobsToExcel(
         joinValues(analysis.blockers),
       reasoning: analysis.reasoning,
       applyUrl: {
-        text: "Open vacancy",
+        text: item.job.applyUrl,
         hyperlink: item.job.applyUrl,
       },
       matchedSkills:
@@ -344,7 +344,7 @@ export async function saveAnalyzedJobsToExcel(
       { header: "Location", key: "location", width: 24 },
       { header: "Pre-score", key: "score", width: 12 },
       { header: "Error", key: "error", width: 70 },
-      { header: "Apply", key: "applyUrl", width: 16 },
+      { header: "Apply URL", key: "applyUrl", width: 55 },
     ];
 
     const failedHeader = failed.getRow(1);
@@ -362,7 +362,7 @@ export async function saveAnalyzedJobsToExcel(
         location: item.location,
         score: item.preliminaryTechScore / 100,
         error: item.error,
-        applyUrl: { text: "Open vacancy", hyperlink: item.applyUrl },
+        applyUrl: { text: item.applyUrl, hyperlink: item.applyUrl },
       });
       row.getCell("score").numFmt = "0%";
       row.eachCell((cell) => {
