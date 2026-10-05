@@ -19,6 +19,10 @@ import {
 } from "./filters/job-filter.js";
 
 import {
+  filterEuropeJobs,
+} from "./filters/europe-filter.js";
+
+import {
   deduplicateJobs,
 } from "./processors/job-deduplicator.js";
 
@@ -161,8 +165,11 @@ async function main(): Promise<void> {
    * -----------------------------------------
    */
 
+  const europeJobs =
+    filterEuropeJobs(jobs);
+
   const roleMatched =
-    filterJobs(jobs);
+    filterJobs(europeJobs);
 
   const logicalJobs =
     deduplicateJobs(
@@ -176,6 +183,14 @@ async function main(): Promise<void> {
 
   console.log(
     `Total jobs: ${jobs.length}`
+  );
+
+  console.log(
+    `Europe relevant: ${europeJobs.length}`
+  );
+
+  console.log(
+    `Non-Europe skipped: ${jobs.length - europeJobs.length}`
   );
 
   console.log(
